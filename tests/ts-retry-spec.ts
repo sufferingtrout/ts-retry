@@ -1,4 +1,4 @@
-import {ExponentialBackoff} from "../src/ts-retry";
+import {ExponentialBackoff} from "../src/index";
 import {expect} from "chai";
 
 describe("executor", () => {
