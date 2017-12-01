@@ -1,29 +1,64 @@
-import * as ts from "typescript/lib/tsserverlibrary";
-import Err = ts.server.Msg.Err;
-export type RetryDecider<T> = (error: Error, response?: T) => boolean;
+/**
+ * Used to decide whether or not a command execution should be retried.
+ * The function will be called with the "error" param set and "response" param set to null if an Error occurred while executing the command.
+ * The function will be called with the "response" param set and the "error" param set to null af the command completed with a response and no Error
+ */
+export type RetryDecider<T> = (error: Error, response: T) => boolean;
+
+/**
+ * The command to execute, returning a successfully completed Promise of the given type
+ * or a rejected Promise
+ */
 export type Command<T> = () => Promise<T>;
+
+/**
+ * Function definition for execution of the command
+ */
 export type ExecutorFunction<T> = (command: Command<T>) => Promise<CommandResult<T>>;
+
+/**
+ * The result of an executed (and possibly retried) command. It provides access
+ * to the orignal command, the completion result or Error, whether or not the command
+ * was able to complete (did not give up due to retry attempts), and how many attempts
+ * it took to complete the command.
+ */
+class CommandResult<T> {
+    constructor(readonly command: Command<T>, readonly result: T | Error, readonly succeeded: boolean, readonly attempts) {
+    }
+
+    /**
+     * Whether or not the command completed (with success or Error) in fewer than the maximum allowable retries
+     * @returns {T}
+     */
+    get successful() {
+        return this.success;
+    }
+
+    /**
+     * Assuming the command completed successful, returns the command result (either an instance of type T or Error)
+     * @returns {T}
+     */
+    get success(): T {
+        if (!this.successful) throw new Error(`Command was not successful.`);
+
+        if (this.result instanceof Error)
+            throw this.result;
+
+        return this.result as T;
+    }
+}
 
 export interface Executor<T> {
     execute(command: Command<T>): Promise<CommandResult<T>>;
 }
 
-export const AnyErrorRetryDecider: RetryDecider<any> = (_, e) => e === undefined;
-
-class CommandResult<T> {
-    constructor(readonly command: Command<T>, readonly result: T | Error, readonly succeeded: boolean, readonly attempts) {
-    }
-
-    get successful() {
-        return this.success;
-    }
-
-    get success(): T {
-        if (this.result instanceof Error)
-            throw this.result;
-        return this.result as T;
-    }
-}
+/**
+ * A Simple RetryDecider implementation that decides to retry a command if any Error occurs
+ * @param e the Error
+ * @param r the instance result
+ * @constructor
+ */
+export const AnyErrorRetryDecider: RetryDecider<any> = (e, r) => r === null;
 
 export class ExponentialBackoffExecutorFactory<T> {
     constructor(private readonly config: ExponentialBackoffConfig<T>) {
@@ -96,7 +131,7 @@ export class ExponentialBackoff<T> implements Executor<T> {
                 }
                 return this.complete(command, result);
             } catch (error) {
-                if (this.config.shouldRetry(error) && !this.giveUp) {
+                if (this.config.shouldRetry(error, null) && !this.giveUp) {
                     await this.backoff();
                     return await exec();
                 }
