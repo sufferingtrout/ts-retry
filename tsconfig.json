@@ -7,11 +7,10 @@
     "noLib": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "target": "es5",
+    "target": "es6",
     "sourceMap": true,
     "allowJs": false,
-    "outDir": "./dist",
-    "lib": ["dom", "es5", "es2015.promise"]
+    "outDir": "./dist"
   },
   "include": [
     "src/**/*"
