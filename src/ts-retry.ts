@@ -22,7 +22,7 @@ export type ExecutorFunction<T> = (command: Command<T>) => Promise<CommandResult
  * was able to complete (did not give up due to retry attempts), and how many attempts
  * it took to complete the command.
  */
-class CommandResult<T> {
+export class CommandResult<T> {
     constructor(readonly command: Command<T>, readonly result: T | Error, readonly succeeded: boolean, readonly attempts) {
     }
 

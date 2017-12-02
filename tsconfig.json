@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "declaration": false,
+    "declaration": true,
     "noImplicitAny": false,
     "removeComments": true,
     "noLib": false,
@@ -19,6 +19,7 @@
     "node_modules",
     "**/*.spec.ts",
     "**/*.Spec.ts",
-    "dist"
+    "dist",
+    "index.js"
   ]
 }

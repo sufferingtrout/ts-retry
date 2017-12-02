@@ -18,6 +18,5 @@ jspm_packages
 .idea
 package.json
 build
-dist
 .DS_Store
 *.lock
