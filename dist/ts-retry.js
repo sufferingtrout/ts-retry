@@ -16,7 +16,7 @@ class CommandResult {
         this.attempts = attempts;
     }
     get successful() {
-        return this.success;
+        return this.succeeded;
     }
     get success() {
         if (!this.successful)

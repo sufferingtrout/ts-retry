@@ -7,7 +7,7 @@ export declare class CommandResult<T> {
     readonly succeeded: boolean;
     readonly attempts: any;
     constructor(command: Command<T>, result: T | Error, succeeded: boolean, attempts: any);
-    readonly successful: T;
+    readonly successful: boolean;
     readonly success: T;
 }
 export interface Executor<T> {
