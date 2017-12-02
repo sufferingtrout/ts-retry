@@ -31,7 +31,7 @@ export class CommandResult<T> {
      * @returns {T}
      */
     get successful() {
-        return this.success;
+        return this.succeeded;
     }
 
     /**
