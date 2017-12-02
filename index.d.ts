@@ -33,12 +33,14 @@ export declare class DefaultExponentialBackoffConfig<T> implements ExponentialBa
 }
 export declare class ExponentialBackoff<T> implements Executor<T> {
     private readonly config;
-    private giveUp;
+    private success;
     private attempt;
     constructor(config?: ExponentialBackoffConfig<T>);
-    private recordAttempt();
     private complete(command, result);
     private backoff();
     private calcBackoff();
+    private recordAttempt();
+    private succeeded;
+    private readonly attemptsRemain;
     execute(command: Command<T>): Promise<CommandResult<T>>;
 }

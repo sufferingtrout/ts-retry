@@ -55,7 +55,7 @@ exports.DefaultExponentialBackoffConfig = DefaultExponentialBackoffConfig;
 class ExponentialBackoff {
     constructor(config = new DefaultExponentialBackoffConfig()) {
         this.config = config;
-        this.giveUp = false;
+        this.success = false;
         this.attempt = 0;
         if (!config)
             throw new Error('config is missing but required');
@@ -66,13 +66,8 @@ class ExponentialBackoff {
         if (!config.shouldRetry)
             throw new Error('shouldRetry is missing by required');
     }
-    recordAttempt() {
-        this.attempt += 1;
-        if (this.attempt == this.config.maxAttempts)
-            this.giveUp = true;
-    }
     complete(command, result) {
-        return new CommandResult(command, result, !this.giveUp, this.attempt);
+        return new CommandResult(command, result, this.succeeded, this.attempt);
     }
     backoff() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -84,25 +79,32 @@ class ExponentialBackoff {
             return this.config.initialRetryDelay;
         return Math.pow(2, this.attempt - 1) * this.config.initialRetryDelay;
     }
+    recordAttempt() { this.attempt += 1; }
+    set succeeded(success) { this.success = success; }
+    get succeeded() { return this.success; }
+    get attemptsRemain() { return this.attempt < this.config.maxAttempts; }
     execute(command) {
         return __awaiter(this, void 0, void 0, function* () {
             const exec = () => __awaiter(this, void 0, void 0, function* () {
-                this.recordAttempt();
                 try {
                     const result = yield command();
-                    if (this.config.shouldRetry(null, result) && !this.giveUp) {
-                        yield this.backoff();
-                        return yield exec();
-                    }
+                    this.recordAttempt();
+                    this.succeeded = !this.config.shouldRetry(null, result);
+                    if (!this.succeeded && this.attemptsRemain)
+                        return retry();
                     return this.complete(command, result);
                 }
                 catch (error) {
-                    if (this.config.shouldRetry(error, null) && !this.giveUp) {
-                        yield this.backoff();
-                        return yield exec();
-                    }
+                    this.recordAttempt();
+                    this.succeeded = !this.config.shouldRetry(error, null);
+                    if (!this.succeeded && this.attemptsRemain)
+                        return retry();
                     return this.complete(command, error);
                 }
+            });
+            const retry = () => __awaiter(this, void 0, void 0, function* () {
+                yield this.backoff();
+                return yield exec();
             });
             return yield exec();
         });
