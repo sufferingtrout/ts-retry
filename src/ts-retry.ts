@@ -90,7 +90,7 @@ export class DefaultExponentialBackoffConfig<T> implements ExponentialBackoffCon
 }
 
 export class ExponentialBackoff<T> implements Executor<T> {
-    private giveUp = false;
+    private success = false;
     private attempt = 0;
 
     constructor(private readonly config: ExponentialBackoffConfig<T> = new DefaultExponentialBackoffConfig<any>()) {
@@ -100,14 +100,8 @@ export class ExponentialBackoff<T> implements Executor<T> {
         if (!config.shouldRetry) throw new Error('shouldRetry is missing by required');
     }
 
-    private recordAttempt() {
-        this.attempt += 1;
-        if (this.attempt == this.config.maxAttempts)
-            this.giveUp = true;
-    }
-
     private complete(command: Command<T>, result: T | Error): CommandResult<T> {
-        return new CommandResult(command, result, !this.giveUp, this.attempt);
+        return new CommandResult(command, result, this.succeeded, this.attempt);
     }
 
     private async backoff(): Promise<void> {
@@ -120,23 +114,34 @@ export class ExponentialBackoff<T> implements Executor<T> {
         return Math.pow(2, this.attempt - 1) * this.config.initialRetryDelay;
     }
 
+    private recordAttempt() { this.attempt += 1; }
+
+    private set succeeded(success: boolean) { this.success = success; }
+
+    private get succeeded() { return this.success; }
+
+    private get attemptsRemain() { return this.attempt < this.config.maxAttempts; }
+
     public async execute(command: Command<T>): Promise<CommandResult<T>> {
         const exec: () => Promise<CommandResult<T>> = async () => {
-            this.recordAttempt();
             try {
                 const result = await command();
-                if (this.config.shouldRetry(null, result) && !this.giveUp) {
-                    await this.backoff();
-                    return await exec();
-                }
+                this.recordAttempt();
+                this.succeeded = !this.config.shouldRetry(null, result);
+                if (!this.succeeded && this.attemptsRemain)
+                    return retry();
                 return this.complete(command, result);
             } catch (error) {
-                if (this.config.shouldRetry(error, null) && !this.giveUp) {
-                    await this.backoff();
-                    return await exec();
-                }
+                this.recordAttempt();
+                this.succeeded = !this.config.shouldRetry(error, null);
+                if (!this.succeeded && this.attemptsRemain)
+                    return retry();
                 return this.complete(command, error);
             }
+        };
+        const retry = async () => {
+            await this.backoff();
+            return await exec();
         };
         return await exec();
     }

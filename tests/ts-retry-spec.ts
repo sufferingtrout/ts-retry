@@ -1,7 +1,7 @@
 import {ExponentialBackoff} from "../src/ts-retry";
 import {expect} from "chai";
 
-describe("executor", () => {
+describe("ts-retry", () => {
 
     describe("ExponentialBackoff", () => {
 
@@ -38,6 +38,31 @@ describe("executor", () => {
                 attempts: 3
             };
             return new ExponentialBackoff<string>().execute(() => Promise.reject(error))
+                .then(result => expect(result).to.contain(expected));
+        });
+
+        it("should be successful on its last attempt", () => {
+            const expected = {
+                result: "success!",
+                succeeded: true,
+                attempts: 3
+            };
+            let invoked = 0;
+            return new ExponentialBackoff<string>().execute(() => {
+                invoked += 1;
+                if (invoked <= 2)
+                    throw new Error('Error!!');
+                return Promise.resolve(expected.result);
+            }).then(result => expect(result).to.contain(expected));
+        });
+
+        it("should be successful on its first and only attempt", () => {
+            const expected = {
+                result: "success!",
+                succeeded: true,
+                attempts: 1
+            };
+            return new ExponentialBackoff<string>().execute(() => Promise.resolve(expected.result))
                 .then(result => expect(result).to.contain(expected));
         });
 
