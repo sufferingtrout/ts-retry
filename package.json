@@ -1,0 +1,27 @@
+{
+  "name": "ts-retry",
+  "version": "1.0.0",
+  "description": "A TypeScript module for executing retryable commands",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha src/**/*.spec.ts --require ts-node/register tests/*spec.ts tests/**/*spec.ts tests/**/*Spec.ts",
+    "clean": "rm -rf ./dist",
+    "compile": "tsc",
+    "build": "npm run clean && npm test && npm run compile && mv ./dist/ts-retry.d.ts ./index.d.ts"
+  },
+  "author": "David Turner",
+  "license": "ISC",
+  "dependencies": {
+    "@types/axios": "^0.14.0",
+    "@types/lodash": "^4.14.86",
+    "axios": "^0.17.1",
+    "typescript": "2.3.2"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.0.6",
+    "@types/mocha": "^2.2.44",
+    "chai": "^4.1.2",
+    "mocha": "^4.0.1",
+    "ts-node": "^3.3.0"
+  }
+}
